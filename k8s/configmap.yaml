@@ -1,0 +1,14 @@
+# Configuración NO sensible. Las credenciales van en el Secret "order-manager-db"
+# (ver secret.example.yaml; el Secret real NO se versiona).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-manager-config
+  labels:
+    app.kubernetes.io/name: order-manager
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "orderdb"
+  DB_POOL_SIZE: "10"

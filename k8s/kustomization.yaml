@@ -1,0 +1,19 @@
+# Despliegue:  kubectl apply -k k8s/
+# (antes crear el Secret: ver secret.example.yaml)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: order-manager
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+# Cambiar la imagen en UN solo lugar:
+#  - local (kind/minikube):  newName: order-manager   newTag: local
+#  - registro (GHCR):        newName: ghcr.io/<usuario>/<repo>   newTag: sha-<commit>
+images:
+  - name: order-manager
+    newName: order-manager
+    newTag: local

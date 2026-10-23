@@ -1,0 +1,86 @@
+# API Order Manager: 2 réplicas, actualizaciones sin caída, probes,
+# límites de recursos y contenedor endurecido.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-manager
+  labels:
+    app.kubernetes.io/name: order-manager
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0        # nunca baja de 2 pods disponibles al actualizar
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: order-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001       # mismo UID que crea el Dockerfile
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      # Espera a que PostgreSQL acepte conexiones antes de arrancar la API
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432; do echo 'esperando a postgres...'; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+      containers:
+        - name: order-manager
+          # El nombre se reemplaza por kustomize (ver "images" en kustomization.yaml)
+          image: order-manager
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8098
+          envFrom:
+            - configMapRef:
+                name: order-manager-config
+            - secretRef:
+                name: order-manager-db
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 30          # hasta 150 s para arrancar
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

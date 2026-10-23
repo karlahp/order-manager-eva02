@@ -1,0 +1,103 @@
+# ============================================================
+# docker-compose.yml - Orquestación de Order Manager (IE5)
+# Servicios: app (API Spring Boot) + db (PostgreSQL 16)
+#
+# Uso local:
+#   cp .env.example .env              # definir credenciales
+#   docker compose up -d --build      # construir y levantar
+#   docker compose ps                 # ver estado (healthy)
+#   docker compose logs -f app
+#   docker compose down               # detener (conserva datos)
+#   docker compose down -v            # detener y borrar datos
+#
+# En el pipeline (deploy) se usa la imagen ya construida y publicada:
+#   APP_IMAGE=ghcr.io/<owner>/<repo>:sha-<commit>  docker compose up -d --no-build
+# ============================================================
+name: order-manager
+
+services:
+
+  # ----------------------------------------------------------
+  # app: API REST
+  # ----------------------------------------------------------
+  app:
+    image: ${APP_IMAGE:-order-manager:local}
+    build:
+      context: .
+      args:
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-local}
+    container_name: order-manager-app
+    ports:
+      - "8098:8098"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-orderdb}
+      DB_USER: ${DB_USER:?Defina DB_USER en .env (ver .env.example)}
+      DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env (ver .env.example)}
+    depends_on:
+      db:
+        # Espera a que PostgreSQL esté REALMENTE listo, no solo iniciado.
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+    # --- Seguridad del contenedor (IE3) ---
+    read_only: true            # sistema de archivos de solo lectura
+    tmpfs:
+      - /tmp                   # único directorio escribible (en memoria)
+    cap_drop:
+      - ALL                    # sin capacidades de Linux
+    security_opt:
+      - no-new-privileges:true # impide escalar privilegios
+    # --- Escalabilidad / desempeño (IE3): límites de recursos ---
+    # La JVM usa 75% de este límite (MaxRAMPercentage definido en el Dockerfile).
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ----------------------------------------------------------
+  # db: PostgreSQL
+  # ----------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: order-manager-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-orderdb}
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER en .env (ver .env.example)}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env (ver .env.example)}
+    ports:
+      # Solo accesible desde la propia máquina (DBeaver, psql). En un
+      # entorno real NO se publica este puerto.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data   # los datos sobreviven a "down"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+    driver: bridge
