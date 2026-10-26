@@ -1,0 +1,240 @@
+name: CI/CD Order Manager
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: order-manager-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Pruebas y cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 y caché Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Ejecutar pruebas y umbral JaCoCo
+        run: mvn -B -ntp clean verify
+
+      - name: Publicar reportes de pruebas y cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-calidad
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 14
+
+  sonar:
+    name: SonarCloud (Quality Gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # En PR de forks GitHub no entrega secrets. En pushes e internos el análisis es obligatorio.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Java 17 y caché Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Exigir configuración de SonarCloud
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          test -n "$SONAR_TOKEN" || { echo "Falta el secret SONAR_TOKEN"; exit 1; }
+          test -n "$SONAR_ORGANIZATION" || { echo "Falta la variable SONAR_ORGANIZATION"; exit 1; }
+          test -n "$SONAR_PROJECT_KEY" || { echo "Falta la variable SONAR_PROJECT_KEY"; exit 1; }
+
+      - name: Ejecutar análisis y esperar Quality Gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: >-
+          mvn -B -ntp clean verify
+          org.sonarsource.scanner.maven:sonar-maven-plugin:3.11.0.3922:sonar
+          -Dsonar.organization="$SONAR_ORGANIZATION"
+          -Dsonar.projectKey="$SONAR_PROJECT_KEY"
+          -Dsonar.token="$SONAR_TOKEN"
+          -Dsonar.qualitygate.wait=true
+
+  build:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [test, sonar]
+    # Un análisis omitido solo es admisible en PR de forks sin acceso a secrets.
+    if: >-
+      always() && needs.test.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Construir imagen con SHA del commit
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          docker build --build-arg APP_COMMIT_SHA="$SHA" --tag "$IMAGE:sha-$SHA" .
+
+      - name: Verificar que la imagen no corre como root
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          USER_ID="$(docker image inspect "$IMAGE:sha-$SHA" --format '{{.Config.User}}')"
+          test "$USER_ID" = "10001:10001" || { echo "Usuario inesperado: $USER_ID"; exit 1; }
+
+      - name: Verificar imagen con Compose y smoke test
+        env:
+          APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          APP_COMMIT_SHA: ${{ github.sha }}
+          DB_USER: order_user
+          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_NAME: orderdb
+        run: |
+          docker compose up -d --no-build
+          bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
+
+      - name: Limpiar entorno de integración
+        if: always()
+        env:
+          DB_USER: order_user
+          DB_PASSWORD: cleanup-only
+          DB_NAME: orderdb
+        run: docker compose down --volumes --remove-orphans
+
+      - name: Publicar imagen verificada en GHCR
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ghcr.io/${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:sha-$SHA"
+
+  deploy:
+    name: Despliegue simulado
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test, sonar, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: simulated-cloud
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Desplegar imagen y validar commit
+        env:
+          APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          APP_COMMIT_SHA: ${{ github.sha }}
+          DB_USER: order_user
+          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_NAME: orderdb
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker compose pull
+          docker compose up -d --no-build
+          bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
+
+      - name: Guardar registro del despliegue
+        if: success()
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          record = {
+              "commit": os.environ["GITHUB_SHA"],
+              "actor": os.environ["GITHUB_ACTOR"],
+              "branch": os.environ["GITHUB_REF_NAME"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "image": os.environ["IMAGE"],
+              "run_url": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          }
+          with open("deployment-record.json", "w", encoding="utf-8") as file:
+              json.dump(record, file, indent=2)
+          PY
+
+      - name: Publicar registro del despliegue
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-record
+          path: deployment-record.json
+          retention-days: 90
+
+      - name: Limpiar entorno simulado
+        if: always()
+        env:
+          DB_USER: order_user
+          DB_PASSWORD: cleanup-only
+          DB_NAME: orderdb
+        run: docker compose down --volumes --remove-orphans
+
+  alert:
+    name: Alertar fallo del pipeline
+    runs-on: ubuntu-latest
+    needs: [test, sonar, build, deploy]
+    if: failure() && github.event_name == 'push'
+    permissions:
+      issues: write
+      actions: read
+    steps:
+      - name: Crear o actualizar Issue de alerta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `[CI] Falló la ejecución #${context.runId}`;
+            const body = [
+              `Falló el pipeline en el commit \`${context.sha}\`.`,
+              `Rama: \`${context.ref.replace('refs/heads/', '')}\`.`,
+              `Ejecución: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            ].join('\n\n');
+            const { data: issues } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', per_page: 100
+            });
+            const existing = issues.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body });
+            }

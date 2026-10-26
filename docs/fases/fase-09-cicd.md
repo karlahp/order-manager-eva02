@@ -6,7 +6,7 @@
 |---|---|---|
 | `test` | `mvn clean verify`, resumen de pruebas/cobertura, sube reportes | falla un test o la cobertura < 70 % |
 | `sonar` | Análisis SonarCloud y espera del Quality Gate | no se aprueba el gate o falta `SONAR_TOKEN` (en push) |
-| `build` | Construye la imagen, verifica no-root, smoke test, publica en GHCR (`sha-<commit>`, SBOM) | falla cualquier verificación |
+| `build` | Construye la imagen, verifica no-root, ejecuta smoke test, publica en GHCR (`sha-<commit>`) | falla cualquier verificación |
 | `deploy` | Entorno `simulated-cloud`: Compose con la imagen publicada, health, smoke test, verifica el commit, registra el despliegue | health/smoke fallan |
 | `alert` | Abre un Issue indicando la etapa fallida | — |
 
