@@ -403,15 +403,15 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 
 | Herramienta | Uso | Aplicación |
 |---|---|---|
-| **Claude (Anthropic)** | Generación de borradores de la configuración DevOps (Dockerfile, workflow de GitHub Actions, Docker Compose, manifiestos de Kubernetes, `smoke-test.sh`, pruebas de integración) y de la estructura de este README | Los borradores fueron revisados, probados y adaptados por el equipo |
+| **Claude (Anthropic)** | Apoyo en borradores de configuración DevOps y documentación del proyecto. | El equipo revisó y adaptó los borradores al microservicio Order Manager. |
+| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El equipo revisó los cambios; el workflow final se ejecutó en GitHub Actions y completó pruebas, análisis, construcción de imagen y despliegue simulado. |
 
-### Qué NO se delegó a la IA
-- ❌ Las **reflexiones individuales** (sección siguiente) fueron redactadas por cada integrante sin IA.
-- ❌ Las **conclusiones** y la valoración personal del aprendizaje.
-- ❌ El código de negocio del microservicio (desarrollado en la evaluación anterior).
+### Trabajo personal del equipo
+- Las **reflexiones individuales** y las conclusiones personales deben ser redactadas por cada integrante a partir de su propia experiencia, sin asistencia de IA.
+- Las herramientas y usos declarados corresponden a lo confirmado por el equipo; revisar que la descripción coincida con los aportes realizados antes de entregar.
 
 ### Validación
-Todo contenido asistido por IA fue **revisado** por el equipo, **ejecutado y verificado** (pipeline en verde en GitHub Actions) y **ajustado** a los requisitos de la rúbrica.
+El pipeline de `main` completó exitosamente las pruebas, el análisis de SonarCloud, la construcción de imagen y el despliegue simulado en GitHub Actions. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
@@ -422,7 +422,7 @@ Todo contenido asistido por IA fue **revisado** por el equipo, **ejecutado y ver
 
 > ⚠️ **Obligatorio:** cada integrante debe redactar su reflexión **sin apoyo de IA** (aprendizaje y contribución personal). Extensión sugerida: 150–250 palabras.
 
-### Reflexión — [Nombre del Integrante 1]
+### Reflexión — Karla Hoch
 
 *(Escribir aquí.)*
 
@@ -430,7 +430,7 @@ Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor de
 
 ---
 
-### Reflexión — [Nombre del Integrante 2]
+### Reflexión — Sebastián Huaiquimilla
 
 *(Escribir aquí.)*
 
@@ -442,8 +442,8 @@ Preguntas guía: ¿Qué concepto de DevOps comprendiste mejor al aplicar el pipe
 
 | Nombre | Rol | GitHub |
 |---|---|---|
-| [Nombre 1] | [ej. DevOps / Pipeline] | [@usuario1](https://github.com/usuario1) |
-| [Nombre 2] | [ej. Testing / Documentación] | [@usuario2](https://github.com/usuario2) |
+| Karla Hoch | Integrante del equipo | [@karlahp](https://github.com/karlahp) |
+| Sebastián Huaiquimilla | Integrante del equipo | [@rojasebastian](https://github.com/rojasebastian) |
 
 **Institución:** Duoc UC — Ingeniería en Informática
 **Asignatura:** DOY0101 — Ingeniería DevOps
