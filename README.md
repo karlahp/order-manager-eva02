@@ -1,6 +1,6 @@
 # 📦 Order Manager API
 
-[![CI/CD Pipeline](https://github.com/USUARIO/REPOSITORIO/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/USUARIO/REPOSITORIO/actions/workflows/ci-cd.yml)
+[![CI/CD Pipeline](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml)
 [![Java](https://img.shields.io/badge/Java-17-blue.svg)](https://openjdk.org/projects/jdk/17/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Docker](https://img.shields.io/badge/Docker-multi--stage-blue.svg)](https://www.docker.com/)
@@ -9,7 +9,7 @@ Microservicio REST para la gestión de pedidos de un e-commerce, desarrollado pa
 
 El proyecto automatiza todo el ciclo de vida del microservicio: **pruebas → análisis de seguridad → contenedor → despliegue → orquestación**, con trazabilidad desde el commit hasta el contenedor en ejecución.
 
-> ⚠️ **Antes de publicar:** reemplazar `USUARIO/REPOSITORIO` en los badges, completar la sección [Autores](#-autores) y seguir la [Configuración inicial](#-configuración-inicial-en-github).
+> ⚠️ **Antes de entregar:** completar la sección [Autores](#-autores), declarar el uso de IA de acuerdo con lo que realmente hizo el equipo y seguir la [Configuración inicial](#-configuración-inicial-en-github).
 
 ---
 
@@ -242,7 +242,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
                   │ • Verifica usuario no-root ⛔
                   │ • Smoke test del contenedor ⛔
                   │ • Publica en GHCR :sha-<commit>
-                  │   (+ SBOM y procedencia)
+                  │ • Etiqueta inmutable :sha-<commit>
                   └─────────────┬─────────────┘
                                 ▼   solo push a main
                   ┌───────────────────────────┐
@@ -267,7 +267,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
 |---|---|---|---|
 | `test` | Ejecutar pruebas y exigir cobertura mínima | JUnit 5, Mockito, MockMvc, JaCoCo | IE2 |
 | `sonar` | Análisis estático y Quality Gate | SonarCloud + `sonar-maven-plugin` | IE3 |
-| `build` | Construir, verificar y publicar la imagen | Docker Buildx, GHCR | IE1 |
+| `build` | Construir, verificar y publicar la imagen | Docker, GHCR | IE1 |
 | `deploy` | Desplegar y verificar en entorno simulado | Docker Compose, `smoke-test.sh` | IE4 |
 | `alert` | Notificar fallos con un Issue | `actions/github-script` | IE3 |
 
@@ -319,7 +319,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 | Credenciales | `.env`, Secret, GitHub Secrets | Nunca en el repositorio; en deploy se generan efímeras | Gobernanza de secretos |
 | Salud sin detalles | `application-docker.properties` | `show-details=never` | No filtra información interna |
 | Dependencias | `dependabot.yml` | Maven, Docker, Compose y Actions | Parches de seguridad continuos |
-| Cadena de suministro | job `build` | SBOM + procedencia en la imagen | Auditoría de componentes |
+| Cadena de suministro | Dependabot + etiqueta SHA | PRs de actualización y referencia al commit desplegado | Revisión de dependencias y trazabilidad |
 
 ### Escalabilidad y desempeño
 
@@ -333,7 +333,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 | Actualización sin caída | `k8s/deployment.yaml` | `maxUnavailable: 0`, `maxSurge: 1` | Despliegues sin interrupción |
 | Disponibilidad en mantenimiento | `k8s/hpa.yaml` | `PodDisruptionBudget minAvailable: 1` | Siempre queda un pod vivo |
 | Apagado ordenado | propiedades | `server.shutdown=graceful` | No corta peticiones en curso |
-| Caché de build | `Dockerfile` + CI | capas de Maven y JAR en capas + `cache-to: gha` | Builds rápidos |
+| Caché de build | `Dockerfile` | dependencias Maven en capa separada y JAR en capas | Builds más eficientes |
 
 ---
 
@@ -367,9 +367,9 @@ commit (SHA) ─► run del pipeline (Run ID) ─► imagen ghcr.io/…:sha-<SHA
 
 1. **Código (Git):** cada cambio tiene commit con SHA, autor, fecha y mensaje.
 2. **Pipeline (GitHub Actions):** cada ejecución tiene `run_id`, logs y artefactos (reportes y `deployment-record`).
-3. **Imagen (GHCR):** etiquetada con el **SHA completo del commit** y con labels OCI (`org.opencontainers.image.revision`). Incluye SBOM y procedencia.
+3. **Imagen (GHCR):** etiquetada con el **SHA completo del commit** y con label OCI (`org.opencontainers.image.revision`).
 4. **Despliegue:** el SHA se inyecta en la imagen (`APP_COMMIT_SHA`) y la aplicación lo expone en `/actuator/info`. El **smoke test compara** ese valor con el commit del pipeline: si no coinciden, el despliegue falla. Así se demuestra que *lo que corre es exactamente lo que se commiteó*.
-5. **Historial:** GitHub Environments (`simulated-cloud`) registra cada despliegue; el artefacto `deployment-record.json` guarda commit, autor, rama, run, imagen, digest y fecha (90 días).
+5. **Historial:** GitHub Environments (`simulated-cloud`) registra cada despliegue; el artefacto `deployment-record.json` guarda commit, autor, rama, run e imagen (90 días).
 
 ```bash
 docker inspect order-manager-app --format '{{.Config.Image}}'
