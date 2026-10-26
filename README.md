@@ -281,7 +281,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
 | La imagen corre como root o su smoke test falla | `build` falla → no se publica ni se despliega |
 | El health check o el smoke test del despliegue | `deploy` falla → se limpia el entorno y salta la alerta |
 | Cualquier etapa en un `push` | job `alert` abre un **Issue** automático (y GitHub envía correo) |
-| Dependabot encuentra una actualización de versión | abre un PR automático; el PR debe revisarse y pasar los checks antes de integrarse. Las alertas de vulnerabilidades de GitHub todavía deben activarse y comprobarse en Settings. |
+| Dependabot encuentra una actualización de versión | abre un PR automático; el PR debe revisarse y pasar los checks antes de integrarse. Las alertas de vulnerabilidades de GitHub están activadas; al verificarlas había cero alertas abiertas. Los PR automáticos de seguridad permanecen desactivados. |
 
 ---
 
@@ -404,14 +404,14 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 | Herramienta | Uso | Aplicación |
 |---|---|---|
 | **Claude (Anthropic)** | Apoyo en borradores de configuración DevOps y documentación del proyecto. | El equipo revisó y adaptó los borradores al microservicio Order Manager. |
-| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El PR #11 pasó pruebas/cobertura al 75 %, SonarCloud y construcción de imagen. El despliegue simulado está validado en una ejecución anterior de `main`; se debe confirmar de nuevo después de integrar este PR. |
+| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El PR #11 pasó pruebas/cobertura al 75 %, SonarCloud y construcción de imagen. La ejecución #16 de `main`, posterior a la integración, también completó el despliegue simulado. |
 
 ### Trabajo personal del equipo
 - Las **reflexiones individuales** y las conclusiones personales deben ser redactadas por cada integrante a partir de su propia experiencia, sin asistencia de IA.
 - Las herramientas y usos declarados corresponden a lo confirmado por el equipo; revisar que la descripción coincida con los aportes realizados antes de entregar.
 
 ### Validación
-El PR #11, en el commit `0520b25`, pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se omite en los PR; una ejecución anterior de `main` completó el despliegue simulado con Docker Compose. Después de integrar el PR, verificar que la ejecución nueva de `main` también complete ese despliegue. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
+El PR #11 pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se omite en los PR. Después de integrar el PR, la ejecución #16 de `main` (commit `9a71246`) completó las pruebas, SonarCloud, la construcción de la imagen y el despliegue simulado. GitHub Actions publicó los artefactos `deployment-record` y `reportes-calidad`. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
