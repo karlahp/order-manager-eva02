@@ -122,6 +122,16 @@ jobs:
           USER_ID="$(docker image inspect "$IMAGE:sha-$SHA" --format '{{.Config.User}}')"
           test "$USER_ID" = "10001:10001" || { echo "Usuario inesperado: $USER_ID"; exit 1; }
 
+      - name: Escanear vulnerabilidades de la imagen (Trivy)
+        # Fijada por SHA completo (v0.35.0): los tags de esta acción fueron secuestrados en marzo de 2026.
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          scan-type: image
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
       - name: Generar contraseña efímera de PostgreSQL
         id: db-credentials
         run: |
@@ -232,7 +242,7 @@ jobs:
   alert:
     name: Alertar fallo del pipeline
     runs-on: ubuntu-latest
-    needs: [test, sonar, build, deploy]
+    needs: [test, sonar, k8s-validate, build, deploy]
     if: failure() && github.event_name == 'push'
     permissions:
       issues: write
