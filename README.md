@@ -445,5 +445,7 @@ Preguntas guía: ¿Qué concepto de DevOps comprendiste mejor al aplicar el pipe
 | Karla Hoch | Integrante del equipo | [@karlahp](https://github.com/karlahp) |
 | Sebastián Huaiquimilla | Integrante del equipo | [@rojasebastian](https://github.com/rojasebastian) |
 
+**Nota sobre la autoría en Git:** Karla y Sebastián trabajaron juntos en un mismo computador. Los commits se registraron desde la cuenta de GitHub `karlahp`; por eso el historial muestra esa cuenta como autora de los cambios.
+
 **Institución:** Duoc UC — Ingeniería en Informática
 **Asignatura:** DOY0101 — Ingeniería DevOps
