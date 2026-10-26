@@ -91,6 +91,33 @@ jobs:
           -Dsonar.token="$SONAR_TOKEN"
           -Dsonar.qualitygate.wait=true
 
+  k8s-validate:
+    name: Validar manifiestos Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.31.0'
+
+      - name: Renderizar manifiestos con Kustomize
+        run: |
+          kubectl kustomize k8s/ > /tmp/order-manager-rendered.yaml
+          test -s /tmp/order-manager-rendered.yaml
+          echo "Los manifiestos de k8s/ se renderizaron correctamente."
+
+      - name: Guardar manifiestos renderizados
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifiestos-kubernetes
+          path: /tmp/order-manager-rendered.yaml
+          if-no-files-found: error
+          retention-days: 14
+
   build:
     name: Imagen Docker
     runs-on: ubuntu-latest
