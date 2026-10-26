@@ -27,7 +27,7 @@ RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/ext
 # ETAPA 2: RUNTIME  (imagen final)
 # JRE (no JDK) sobre Alpine: pequeña y con menor superficie de ataque.
 # ------------------------------------------------------------
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 WORKDIR /app
 
 # Usuario NO root con UID numérico fijo (Kubernetes exige UID numérico
