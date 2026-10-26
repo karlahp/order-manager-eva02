@@ -47,7 +47,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 | Indicador | Qué exige | Dónde se evidencia |
 |---|---|---|
 | **IE1** Contenedores | Dockerfile + construcción de imagen en el pipeline | [`Dockerfile`](Dockerfile) multi-etapa, [`.dockerignore`](.dockerignore), job `build` de [`ci-cd.yml`](.github/workflows/ci-cd.yml) |
-| **IE2** Pruebas automatizadas | Pruebas unitarias en CI según políticas de calidad | 60+ pruebas JUnit 5/Mockito + integración (`src/test`), cobertura mínima **70 %** forzada por JaCoCo, job `test` |
+| **IE2** Pruebas automatizadas | Pruebas unitarias en CI según políticas de calidad | 69 pruebas JUnit 5/Mockito + integración (`src/test`), cobertura mínima **75 %** forzada por JaCoCo, job `test` |
 | **IE3** Escalabilidad y seguridad | Dependabot + SonarQube/Snyk + alertas/bloqueos | [`dependabot.yml`](.github/dependabot.yml), job `sonar` (Quality Gate bloqueante), job `alert`, contenedor endurecido, límites de recursos, HPA |
 | **IE4** Despliegue y trazabilidad | Deploy automático en entorno simulado + README | job `deploy` (Docker Compose), imagen etiquetada con el SHA, `/actuator/info`, registro de despliegue |
 | **IE5** Orquestación | Kubernetes o Docker Compose | [`docker-compose.yml`](docker-compose.yml) **y** manifiestos en [`k8s/`](k8s/) (réplicas, probes, HPA, PVC) |
@@ -231,7 +231,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
    │ JOB test       (IE2)│             │ JOB sonar      (IE3)│
    │ • mvn clean verify  │             │ • Análisis SonarCloud│
    │ • JUnit + integración│            │ • Quality Gate       │
-   │ • JaCoCo ≥ 70 %  ⛔ │             │   bloqueante     ⛔  │
+   │ • JaCoCo ≥ 75 %  ⛔ │             │   bloqueante     ⛔  │
    │ • Reportes (artifact)│            └──────────┬──────────┘
    └──────────┬──────────┘                        │
               └─────────────────┬─────────────────┘
@@ -275,7 +275,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
 
 | Si falla… | Consecuencia |
 |---|---|
-| Un test, o la cobertura baja del 70 % | `test` falla → no se construye ni se despliega |
+| Un test, o la cobertura baja del 75 % | `test` falla → no se construye ni se despliega |
 | El Quality Gate de SonarCloud | `sonar` falla → no se construye ni se despliega |
 | Falta el `SONAR_TOKEN` en un push | el pipeline **falla** (la seguridad nunca se omite en silencio) |
 | La imagen corre como root o su smoke test falla | `build` falla → no se publica ni se despliega |
@@ -311,7 +311,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 |---|---|---|---|
 | Permisos del token | `ci-cd.yml` | `contents: read` global; cada job amplía lo mínimo | Mínimo privilegio |
 | Quality Gate | job `sonar` | `sonar.qualitygate.wait=true` | Bloquea ante bugs/vulnerabilidades |
-| Cobertura mínima | `pom.xml` | `jacoco.line.minimum = 0.70` | Política de calidad verificable |
+| Cobertura mínima | `pom.xml` | `jacoco.line.minimum = 0.75` | Política de calidad verificable |
 | Usuario del contenedor | `Dockerfile` | UID 10001 (no root), verificado en CI | Limita el daño ante una intrusión |
 | Imagen base | `Dockerfile` | `eclipse-temurin:17-jre-alpine` | Menor superficie de ataque (sin JDK ni Maven) |
 | Sistema de archivos | Compose / K8s | `read_only` / `readOnlyRootFilesystem` + `/tmp` en memoria | Evita persistencia de malware |
@@ -381,7 +381,7 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 | Capa | Herramienta | Criterio |
 |---|---|---|
 | Pruebas unitarias y de integración | JUnit 5 + Mockito + MockMvc | todas deben pasar |
-| Cobertura | JaCoCo | ≥ 70 % de líneas (bloqueante) |
+| Cobertura | JaCoCo | ≥ 75 % de líneas (bloqueante) |
 | Análisis estático | SonarCloud | Quality Gate aprobado (bloqueante) |
 | Dependencias | Dependabot | PRs automáticos + alertas |
 | Validación de entrada | Jakarta Validation | `@NotBlank`, `@Min`, `@Max`, `@DecimalMin`… |
