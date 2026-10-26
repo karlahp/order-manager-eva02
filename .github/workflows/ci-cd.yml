@@ -95,11 +95,12 @@ jobs:
     name: Imagen Docker
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [test, sonar]
+    needs: [test, sonar, k8s-validate]
     # Un análisis omitido solo es admisible en PR de forks o Dependabot, que no reciben secrets.
     if: >-
       always() && needs.test.result == 'success' &&
-      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
+      needs.k8s-validate.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')     
     permissions:
       contents: read
       packages: write
