@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml)
 [![Java](https://img.shields.io/badge/Java-17-blue.svg)](https://openjdk.org/projects/jdk/17/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Docker](https://img.shields.io/badge/Docker-multi--stage-blue.svg)](https://www.docker.com/)
 
 Microservicio REST para la gestión de pedidos de un e-commerce, desarrollado para la asignatura **Ingeniería DevOps (DOY0101)** de Duoc UC — **Evaluación Parcial N°2: "Añadiéndole complejidad a nuestro pipeline"**.
@@ -56,7 +56,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 | Capa | Tecnología |
 |---|---|
-| Lenguaje / framework | Java 17, Spring Boot 3.5.16 (Web, Data JPA, Validation, Actuator) |
+| Lenguaje / framework | Java 17, Spring Boot 4.1.2 (Web, Data JPA, Validation, Actuator) |
 | Persistencia | H2 en memoria (desarrollo y tests) · PostgreSQL 16 (Docker/Kubernetes) |
 | Testing | JUnit 5, Mockito, Spring Boot Test (`MockMvc`), JaCoCo |
 | Contenedores | Docker (multi-stage, JAR en capas), Docker Compose, Kubernetes (Kustomize) |
