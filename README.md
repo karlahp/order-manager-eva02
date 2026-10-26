@@ -48,9 +48,9 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 |---|---|---|
 | **IE1** Contenedores | Dockerfile + construcción de imagen en el pipeline | [`Dockerfile`](Dockerfile) multi-etapa, [`.dockerignore`](.dockerignore), job `build` de [`ci-cd.yml`](.github/workflows/ci-cd.yml) |
 | **IE2** Pruebas automatizadas | Pruebas unitarias en CI según políticas de calidad | 69 pruebas JUnit 5/Mockito + integración (`src/test`), cobertura mínima **75 %** forzada por JaCoCo, job `test` |
-| **IE3** Escalabilidad y seguridad | Dependabot + SonarQube/Snyk + alertas/bloqueos | [`dependabot.yml`](.github/dependabot.yml), job `sonar` (Quality Gate bloqueante), job `alert`, contenedor endurecido, límites de recursos, HPA |
+| **IE3** Escalabilidad y seguridad | Análisis estático, actualizaciones de dependencias, alertas y controles del contenedor | SonarCloud en el job `sonar`, actualizaciones de Dependabot, alerta del job `alert` ante fallos en `push`, controles del contenedor y límites de recursos. Los manifiestos incluyen HPA, pero no se ha demostrado su ejecución en un clúster. |
 | **IE4** Despliegue y trazabilidad | Deploy automático en entorno simulado + README | job `deploy` (Docker Compose), imagen etiquetada con el SHA, `/actuator/info`, registro de despliegue |
-| **IE5** Orquestación | Kubernetes o Docker Compose | [`docker-compose.yml`](docker-compose.yml) **y** manifiestos en [`k8s/`](k8s/) (réplicas, probes, HPA, PVC) |
+| **IE5** Orquestación | Kubernetes o Docker Compose | [`docker-compose.yml`](docker-compose.yml) se ejecutó en el pipeline con la API y PostgreSQL. También se incluyen manifiestos en [`k8s/`](k8s/), sin evidencia de aplicación en un clúster. |
 
 ---
 
@@ -281,7 +281,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
 | La imagen corre como root o su smoke test falla | `build` falla → no se publica ni se despliega |
 | El health check o el smoke test del despliegue | `deploy` falla → se limpia el entorno y salta la alerta |
 | Cualquier etapa en un `push` | job `alert` abre un **Issue** automático (y GitHub envía correo) |
-| Dependabot detecta una vulnerabilidad | abre un PR; ese PR debe pasar todo el pipeline para poder integrarse |
+| Dependabot encuentra una actualización de versión | abre un PR automático; el PR debe revisarse y pasar los checks antes de integrarse. Las alertas de vulnerabilidades de GitHub todavía deben activarse y comprobarse en Settings. |
 
 ---
 
@@ -294,9 +294,9 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 2. En GitHub: **Settings › Secrets and variables › Actions**
    - **Secret** `SONAR_TOKEN` → token generado en SonarCloud (*My Account › Security*).
    - **Variables** `SONAR_ORGANIZATION` y `SONAR_PROJECT_KEY` → valores que muestra SonarCloud.
-3. **Settings › Code security**: activar *Dependency graph*, *Dependabot alerts* y *Dependabot security updates*.
+3. **Settings › Code security**: *Dependency graph* y *Dependabot alerts* están activados. Las actualizaciones de versiones están configuradas en `.github/dependabot.yml`. *Dependabot security updates* permanece desactivado; si se habilita, GitHub abrirá PRs automáticos para vulnerabilidades con parches disponibles.
 4. **Settings › Actions › General › Workflow permissions**: *Read and write permissions* (necesario para publicar en GHCR y abrir Issues).
-5. **Settings › Branches**: regla de protección para `main` exigiendo que los checks `Pruebas y cobertura`, `SonarCloud (Quality Gate)` e `Imagen Docker` pasen antes de hacer merge. *(Es el bloqueo "duro" a nivel de repositorio.)*
+5. **Settings › Rules › Rulesets** (o **Settings › Branches**, según la interfaz): configurar y comprobar una regla para `main` que exija los checks `Pruebas y cobertura`, `SonarCloud (Quality Gate)` e `Imagen Docker` antes de permitir el merge. Esta regla es una configuración manual de GitHub; el workflow por sí solo no impide integrar un PR con checks fallidos.
 6. *(Opcional)* **Settings › Environments › simulated-cloud**: agregar *Required reviewers* para exigir aprobación manual antes de desplegar.
 
 > Los PR creados por Dependabot o desde forks no reciben secrets; en ellos el análisis de Sonar se omite con una advertencia y se ejecuta al integrar en `main`.
@@ -310,7 +310,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 | Parámetro | Dónde | Valor | Justificación |
 |---|---|---|---|
 | Permisos del token | `ci-cd.yml` | `contents: read` global; cada job amplía lo mínimo | Mínimo privilegio |
-| Quality Gate | job `sonar` | `sonar.qualitygate.wait=true` | Bloquea ante bugs/vulnerabilidades |
+| Quality Gate | job `sonar` | `sonar.qualitygate.wait=true` | El job falla si el Quality Gate configurado no pasa |
 | Cobertura mínima | `pom.xml` | `jacoco.line.minimum = 0.75` | Política de calidad verificable |
 | Usuario del contenedor | `Dockerfile` | UID 10001 (no root), verificado en CI | Limita el daño ante una intrusión |
 | Imagen base | `Dockerfile` | `eclipse-temurin:17-jre-alpine` | Menor superficie de ataque (sin JDK ni Maven) |
@@ -318,7 +318,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 | Capacidades Linux | Compose / K8s | `cap_drop: ALL`, `no-new-privileges` | Sin privilegios extra |
 | Credenciales | `.env`, Secret, GitHub Secrets | Nunca en el repositorio; en deploy se generan efímeras | Gobernanza de secretos |
 | Salud sin detalles | `application-docker.properties` | `show-details=never` | No filtra información interna |
-| Dependencias | `dependabot.yml` | Maven, Docker, Compose y Actions | Parches de seguridad continuos |
+| Actualizaciones de versiones | `dependabot.yml` | Maven, Docker y GitHub Actions | PRs periódicos de actualización; revisar y validar antes de integrar |
 | Cadena de suministro | Dependabot + etiqueta SHA | PRs de actualización y referencia al commit desplegado | Revisión de dependencias y trazabilidad |
 
 ### Escalabilidad y desempeño
@@ -382,15 +382,15 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 |---|---|---|
 | Pruebas unitarias y de integración | JUnit 5 + Mockito + MockMvc | todas deben pasar |
 | Cobertura | JaCoCo | ≥ 75 % de líneas (bloqueante) |
-| Análisis estático | SonarCloud | Quality Gate aprobado (bloqueante) |
-| Dependencias | Dependabot | PRs automáticos + alertas |
+| Análisis estático | SonarCloud | Quality Gate aprobado; el job `build` depende del resultado (bloqueante en el pipeline) |
+| Actualizaciones de dependencias | Dependabot | PRs automáticos configurados; verificar por separado que las alertas de seguridad estén activas en GitHub |
 | Validación de entrada | Jakarta Validation | `@NotBlank`, `@Min`, `@Max`, `@DecimalMin`… |
 | Errores | `@RestControllerAdvice` | formato JSON uniforme |
 | Verificación del contenedor | pipeline | no-root + smoke test funcional |
 
 ### Reportes disponibles
-- **Surefire + JaCoCo:** artefacto `reportes-calidad` en cada ejecución (y resumen en la pestaña *Summary* del run).
-- **Dashboard de SonarCloud:** calidad, cobertura, deuda técnica.
+- **Surefire + JaCoCo:** artefacto `reportes-calidad` en cada ejecución; ahí se consulta el reporte de cobertura validado por el umbral del 75 %.
+- **Dashboard de SonarCloud:** problemas y Quality Gate. La cobertura no aparece actualmente en el dashboard; el PR #11 muestra 0 % en código nuevo porque solo cambió documentación. Verificar la cobertura global en el artefacto JaCoCo.
 - **Historial de despliegues:** pestaña *Actions* y *Environments* de GitHub.
 
 ---
@@ -404,14 +404,14 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 | Herramienta | Uso | Aplicación |
 |---|---|---|
 | **Claude (Anthropic)** | Apoyo en borradores de configuración DevOps y documentación del proyecto. | El equipo revisó y adaptó los borradores al microservicio Order Manager. |
-| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El equipo revisó los cambios; el workflow final se ejecutó en GitHub Actions y completó pruebas, análisis, construcción de imagen y despliegue simulado. |
+| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El PR #11 pasó pruebas/cobertura al 75 %, SonarCloud y construcción de imagen. El despliegue simulado está validado en una ejecución anterior de `main`; se debe confirmar de nuevo después de integrar este PR. |
 
 ### Trabajo personal del equipo
 - Las **reflexiones individuales** y las conclusiones personales deben ser redactadas por cada integrante a partir de su propia experiencia, sin asistencia de IA.
 - Las herramientas y usos declarados corresponden a lo confirmado por el equipo; revisar que la descripción coincida con los aportes realizados antes de entregar.
 
 ### Validación
-El pipeline de `main` completó exitosamente las pruebas, el análisis de SonarCloud, la construcción de imagen y el despliegue simulado en GitHub Actions. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
+El PR #11, en el commit `0520b25`, pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se omite en los PR; una ejecución anterior de `main` completó el despliegue simulado con Docker Compose. Después de integrar el PR, verificar que la ejecución nueva de `main` también complete ese despliegue. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
