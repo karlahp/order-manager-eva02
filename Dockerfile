@@ -19,9 +19,9 @@ RUN mvn -B -ntp dependency:go-offline
 COPY src ./src
 RUN mvn -B -ntp clean package -DskipTests
 
-# 3) Extrae el JAR en capas (dependencias / loader / aplicación).
+# 3) Extrae el JAR en capas con el modo tools compatible con Spring Boot 4.
 #    Así un cambio de código solo invalida la capa pequeña "application".
-RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination target/extracted
 
 # ------------------------------------------------------------
 # ETAPA 2: RUNTIME  (imagen final)
