@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar Java 17 y caché Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -57,7 +57,7 @@ jobs:
           fetch-depth: 0
 
       - name: Configurar Java 21 para SonarCloud y caché Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
