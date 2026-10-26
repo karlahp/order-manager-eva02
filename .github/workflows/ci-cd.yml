@@ -61,11 +61,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configurar Java 17 para SonarCloud y caché Maven
+      - name: Configurar Java 21 para SonarCloud y caché Maven
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: maven
 
       - name: Exigir configuración de SonarCloud
