@@ -48,19 +48,24 @@ jobs:
     name: SonarCloud (Quality Gate)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # En PR de forks GitHub no entrega secrets. En pushes e internos el análisis es obligatorio.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # GitHub no entrega secrets a PR de forks ni a PR creados por Dependabot.
+    # En ambos casos, el análisis se ejecuta al integrar el cambio en main.
+    if: >-
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]'
+      )
     steps:
       - name: Obtener código
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configurar Java 21 para SonarCloud y caché Maven
+      - name: Configurar Java 17 para SonarCloud y caché Maven
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
           cache: maven
 
       - name: Exigir configuración de SonarCloud
@@ -91,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [test, sonar]
-    # Un análisis omitido solo es admisible en PR de forks sin acceso a secrets.
+    # Un análisis omitido solo es admisible en PR de forks o Dependabot, que no reciben secrets.
     if: >-
       always() && needs.test.result == 'success' &&
       (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
@@ -117,15 +122,22 @@ jobs:
           USER_ID="$(docker image inspect "$IMAGE:sha-$SHA" --format '{{.Config.User}}')"
           test "$USER_ID" = "10001:10001" || { echo "Usuario inesperado: $USER_ID"; exit 1; }
 
+      - name: Generar contraseña efímera de PostgreSQL
+        id: db-credentials
+        run: |
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          echo "password=$password" >> "$GITHUB_OUTPUT"
+
       - name: Verificar imagen con Compose y smoke test
         env:
           APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           APP_COMMIT_SHA: ${{ github.sha }}
           DB_USER: order_user
-          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_PASSWORD: ${{ steps.db-credentials.outputs.password }}
           DB_NAME: orderdb
         run: |
-          docker compose up -d --no-build
+          docker compose up -d --no-build --wait --wait-timeout 90
           bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
 
       - name: Limpiar entorno de integración
@@ -161,18 +173,25 @@ jobs:
       - name: Obtener código
         uses: actions/checkout@v4
 
+      - name: Generar contraseña efímera de PostgreSQL
+        id: db-credentials
+        run: |
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          echo "password=$password" >> "$GITHUB_OUTPUT"
+
       - name: Desplegar imagen y validar commit
         env:
           APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           APP_COMMIT_SHA: ${{ github.sha }}
           DB_USER: order_user
-          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_PASSWORD: ${{ steps.db-credentials.outputs.password }}
           DB_NAME: orderdb
           GH_TOKEN: ${{ github.token }}
         run: |
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker compose pull
-          docker compose up -d --no-build
+          docker compose up -d --no-build --wait --wait-timeout 90
           bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
 
       - name: Guardar registro del despliegue
@@ -223,10 +242,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const title = `[CI] Falló la ejecución #${context.runId}`;
+            const branch = context.ref.replace('refs/heads/', '');
+            const title = `[CI] Falló el pipeline en ${branch}`;
             const body = [
               `Falló el pipeline en el commit \`${context.sha}\`.`,
-              `Rama: \`${context.ref.replace('refs/heads/', '')}\`.`,
+              `Rama: \`${branch}\`.`,
               `Ejecución: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             ].join('\n\n');
             const { data: issues } = await github.rest.issues.listForRepo({

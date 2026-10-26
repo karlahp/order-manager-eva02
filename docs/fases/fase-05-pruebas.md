@@ -8,4 +8,4 @@
 | Manejo de errores | `GlobalExceptionHandlerTest` | Formato de respuesta de cada excepción |
 | **Integración** | `OrderFlowIntegrationTest` | `@SpringBootTest` con H2: ciclo de vida completo, reglas 409, 400/404, health e info |
 
-**Política de calidad:** JaCoCo genera el informe en `mvn test` y **falla `mvn verify` si la cobertura de líneas es < 70 %** (`jacoco.line.minimum` en el `pom.xml`).
+**Política de calidad:** JaCoCo genera el informe durante `mvn verify` y **falla la compilación si la cobertura de líneas es < 75 %** (`jacoco.line.minimum` en el `pom.xml`). La política mide líneas, no cobertura de ramas.

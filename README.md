@@ -2,14 +2,12 @@
 
 [![CI/CD Pipeline](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/karlahp/order-manager-eva02/actions/workflows/ci-cd.yml)
 [![Java](https://img.shields.io/badge/Java-17-blue.svg)](https://openjdk.org/projects/jdk/17/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Docker](https://img.shields.io/badge/Docker-multi--stage-blue.svg)](https://www.docker.com/)
 
 Microservicio REST para la gestión de pedidos de un e-commerce, desarrollado para la asignatura **Ingeniería DevOps (DOY0101)** de Duoc UC — **Evaluación Parcial N°2: "Añadiéndole complejidad a nuestro pipeline"**.
 
-El proyecto automatiza todo el ciclo de vida del microservicio: **pruebas → análisis de seguridad → contenedor → despliegue → orquestación**, con trazabilidad desde el commit hasta el contenedor en ejecución.
-
-> ⚠️ **Antes de entregar:** completar la sección [Autores](#-autores), declarar el uso de IA de acuerdo con lo que realmente hizo el equipo y seguir la [Configuración inicial](#-configuración-inicial-en-github).
+El proyecto automatiza el ciclo de vida del microservicio: **pruebas → análisis estático y revisión de dependencias → contenedor → despliegue → orquestación**, con trazabilidad desde el commit hasta el contenedor en ejecución.
 
 ---
 
@@ -58,7 +56,7 @@ PENDING ──► CONFIRMED ──► SHIPPED ──► DELIVERED
 
 | Capa | Tecnología |
 |---|---|
-| Lenguaje / framework | Java 17, Spring Boot 3.3.4 (Web, Data JPA, Validation, Actuator) |
+| Lenguaje / framework | Java 17, Spring Boot 3.5.16 (Web, Data JPA, Validation, Actuator) |
 | Persistencia | H2 en memoria (desarrollo y tests) · PostgreSQL 16 (Docker/Kubernetes) |
 | Testing | JUnit 5, Mockito, Spring Boot Test (`MockMvc`), JaCoCo |
 | Contenedores | Docker (multi-stage, JAR en capas), Docker Compose, Kubernetes (Kustomize) |
@@ -111,6 +109,7 @@ order-manager/
 │   └── test/java/.../                      # Unitarias + integración
 ├── docs/fases/                    # Bitácora por fase del proyecto
 ├── Dockerfile                     # Imagen multi-etapa
+├── .gitignore                     # Excluye secretos y artefactos locales
 ├── docker-compose.yml             # Orquestación app + BD
 ├── .env.example                   # Plantilla de credenciales (NO subir .env)
 ├── sonar-project.properties       # Configuración SonarCloud
@@ -140,13 +139,13 @@ mvn clean verify          # pruebas + cobertura mínima
 mvn spring-boot:run       # http://localhost:8098
 ```
 
-Consola H2: `http://localhost:8098/h2-console` · JDBC URL `jdbc:h2:mem:orderdb` · usuario `sa` · sin contraseña.
+La consola H2 está deshabilitada por defecto y también en Docker. Si la necesitan en desarrollo local, actívenla solo para esa ejecución con `H2_CONSOLE_ENABLED=true`; el usuario es `sa` y la base no tiene contraseña. El endpoint de salud no revela detalles internos.
 
 ### Opción 2 — Docker Compose (app + PostgreSQL)
 
 ```bash
 cp .env.example .env                 # definir credenciales (cambiar la clave)
-docker compose up -d --build         # construir imagen y levantar
+docker compose up -d --build --wait --wait-timeout 90  # construir y esperar estado saludable
 docker compose ps                    # app y db deben estar "healthy"
 scripts/smoke-test.sh                # prueba de punta a punta (opcional)
 docker compose logs -f app
@@ -242,7 +241,7 @@ Definido en [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml). Se eje
                   │ • Verifica usuario no-root ⛔
                   │ • Smoke test del contenedor ⛔
                   │ • Publica en GHCR :sha-<commit>
-                  │ • Etiqueta inmutable :sha-<commit>
+                  │ • Etiqueta asociada al SHA :sha-<commit>
                   └─────────────┬─────────────┘
                                 ▼   solo push a main
                   ┌───────────────────────────┐
@@ -299,7 +298,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 5. **Settings › Rules › Rulesets** (o **Settings › Branches**, según la interfaz): configurar y comprobar una regla para `main` que exija los checks `Pruebas y cobertura`, `SonarCloud (Quality Gate)` e `Imagen Docker` antes de permitir el merge. Esta regla es una configuración manual de GitHub; el workflow por sí solo no impide integrar un PR con checks fallidos.
 6. *(Opcional)* **Settings › Environments › simulated-cloud**: agregar *Required reviewers* para exigir aprobación manual antes de desplegar.
 
-> Los PR creados por Dependabot o desde forks no reciben secrets; en ellos el análisis de Sonar se omite con una advertencia y se ejecuta al integrar en `main`.
+> Los PR de forks y los PR creados por Dependabot no reciben secrets de GitHub. Por eso el job `sonar` se omite en esos PR; las pruebas y la construcción de imagen siguen ejecutándose. SonarCloud vuelve a ejecutarse en el `push` a `main`. En los PR internos creados por integrantes, el análisis sí es obligatorio.
 
 ---
 
@@ -316,7 +315,7 @@ Estos pasos se hacen **una sola vez** en el repositorio (no se pueden versionar 
 | Imagen base | `Dockerfile` | `eclipse-temurin:17-jre-alpine` | Menor superficie de ataque (sin JDK ni Maven) |
 | Sistema de archivos | Compose / K8s | `read_only` / `readOnlyRootFilesystem` + `/tmp` en memoria | Evita persistencia de malware |
 | Capacidades Linux | Compose / K8s | `cap_drop: ALL`, `no-new-privileges` | Sin privilegios extra |
-| Credenciales | `.env`, Secret, GitHub Secrets | Nunca en el repositorio; en deploy se generan efímeras | Gobernanza de secretos |
+| Credenciales | `.env`, Secret, GitHub Secrets | Nunca en el repositorio; la contraseña de PostgreSQL se genera aleatoriamente, se enmascara en los logs y dura solo el job | Reduce exposición y reutilización |
 | Salud sin detalles | `application-docker.properties` | `show-details=never` | No filtra información interna |
 | Actualizaciones de versiones | `dependabot.yml` | Maven, Docker y GitHub Actions | PRs periódicos de actualización; revisar y validar antes de integrar |
 | Cadena de suministro | Dependabot + etiqueta SHA | PRs de actualización y referencia al commit desplegado | Revisión de dependencias y trazabilidad |
@@ -397,8 +396,6 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 
 ## 🤖 Uso de Inteligencia Artificial
 
-> ✏️ **Revisar y ajustar esta sección antes de entregar** para que refleje fielmente lo que hizo el equipo.
-
 ### Herramientas utilizadas
 
 | Herramienta | Uso | Aplicación |
@@ -408,10 +405,10 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 
 ### Trabajo personal del equipo
 - Las **reflexiones individuales** y las conclusiones personales deben ser redactadas por cada integrante a partir de su propia experiencia, sin asistencia de IA.
-- Las herramientas y usos declarados corresponden a lo confirmado por el equipo; revisar que la descripción coincida con los aportes realizados antes de entregar.
+- La declaración identifica las herramientas de IA utilizadas y las tareas en que apoyaron al equipo.
 
 ### Validación
-El PR #11 pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se omite en los PR. Después de integrar el PR, la ejecución #16 de `main` (commit `9a71246`) completó las pruebas, SonarCloud, la construcción de la imagen y el despliegue simulado. GitHub Actions publicó los artefactos `deployment-record` y `reportes-calidad`. El equipo debe revisar y adaptar cualquier contenido asistido por IA a lo que efectivamente implementó.
+El PR #11 pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se ejecuta solo en `push` a `main`. La ejecución #16 de `main` (commit `9a71246`) completó pruebas, SonarCloud, construcción de imagen y despliegue simulado; GitHub Actions publicó `deployment-record` y `reportes-calidad`.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
@@ -420,7 +417,7 @@ El PR #11 pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de Son
 
 ## 💭 Conclusiones y reflexiones individuales
 
-> ⚠️ **Obligatorio:** cada integrante debe redactar su reflexión **sin apoyo de IA** (aprendizaje y contribución personal). Extensión sugerida: 150–250 palabras.
+Cada integrante debe completar su reflexión personal a partir de su propia experiencia, sin apoyo de IA. Extensión sugerida: 150–250 palabras.
 
 ### Reflexión — Karla Hoch
 
