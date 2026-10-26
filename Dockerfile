@@ -19,9 +19,9 @@ RUN mvn -B -ntp dependency:go-offline
 COPY src ./src
 RUN mvn -B -ntp clean package -DskipTests
 
-# 3) Extrae el JAR en capas (dependencias / loader / aplicación).
+# 3) Extrae el JAR en capas con el modo tools compatible con Spring Boot 4.
 #    Así un cambio de código solo invalida la capa pequeña "application".
-RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination target/extracted
 
 # ------------------------------------------------------------
 # ETAPA 2: RUNTIME  (imagen final)
@@ -58,7 +58,7 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 # Debe coincidir con server.port de las propiedades.
 EXPOSE 8098
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8098/actuator/health || exit 1
 
 # Formato exec (sin shell): la JVM recibe SIGTERM directamente (apagado ordenado).

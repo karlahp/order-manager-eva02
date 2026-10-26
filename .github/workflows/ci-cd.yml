@@ -48,8 +48,13 @@ jobs:
     name: SonarCloud (Quality Gate)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # En PR de forks GitHub no entrega secrets. En pushes e internos el análisis es obligatorio.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # GitHub no entrega secrets a PR de forks ni a PR creados por Dependabot.
+    # En ambos casos, el análisis se ejecuta al integrar el cambio en main.
+    if: >-
+      github.event_name != 'pull_request' || (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]'
+      )
     steps:
       - name: Obtener código
         uses: actions/checkout@v4
@@ -86,15 +91,43 @@ jobs:
           -Dsonar.token="$SONAR_TOKEN"
           -Dsonar.qualitygate.wait=true
 
+  k8s-validate:
+    name: Validar manifiestos Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Configurar kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.31.0'
+
+      - name: Renderizar manifiestos con Kustomize
+        run: |
+          kubectl kustomize k8s/ > /tmp/order-manager-rendered.yaml
+          test -s /tmp/order-manager-rendered.yaml
+          echo "Los manifiestos de k8s/ se renderizaron correctamente."
+
+      - name: Guardar manifiestos renderizados
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifiestos-kubernetes
+          path: /tmp/order-manager-rendered.yaml
+          if-no-files-found: error
+          retention-days: 14
+
   build:
     name: Imagen Docker
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [test, sonar]
-    # Un análisis omitido solo es admisible en PR de forks sin acceso a secrets.
+    needs: [test, sonar, k8s-validate]
+    # Un análisis omitido solo es admisible en PR de forks o Dependabot, que no reciben secrets.
     if: >-
       always() && needs.test.result == 'success' &&
-      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')
+      needs.k8s-validate.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped')     
     permissions:
       contents: read
       packages: write
@@ -117,15 +150,32 @@ jobs:
           USER_ID="$(docker image inspect "$IMAGE:sha-$SHA" --format '{{.Config.User}}')"
           test "$USER_ID" = "10001:10001" || { echo "Usuario inesperado: $USER_ID"; exit 1; }
 
+      - name: Escanear vulnerabilidades de la imagen (Trivy)
+        # Fijada por SHA completo (v0.35.0): los tags de esta acción fueron secuestrados en marzo de 2026.
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          scan-type: image
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Generar contraseña efímera de PostgreSQL
+        id: db-credentials
+        run: |
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          echo "password=$password" >> "$GITHUB_OUTPUT"
+
       - name: Verificar imagen con Compose y smoke test
         env:
           APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           APP_COMMIT_SHA: ${{ github.sha }}
           DB_USER: order_user
-          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_PASSWORD: ${{ steps.db-credentials.outputs.password }}
           DB_NAME: orderdb
         run: |
-          docker compose up -d --no-build
+          docker compose up -d --no-build --wait --wait-timeout 90
           bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
 
       - name: Limpiar entorno de integración
@@ -161,18 +211,25 @@ jobs:
       - name: Obtener código
         uses: actions/checkout@v4
 
+      - name: Generar contraseña efímera de PostgreSQL
+        id: db-credentials
+        run: |
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          echo "password=$password" >> "$GITHUB_OUTPUT"
+
       - name: Desplegar imagen y validar commit
         env:
           APP_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           APP_COMMIT_SHA: ${{ github.sha }}
           DB_USER: order_user
-          DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-ephemeral
+          DB_PASSWORD: ${{ steps.db-credentials.outputs.password }}
           DB_NAME: orderdb
           GH_TOKEN: ${{ github.token }}
         run: |
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker compose pull
-          docker compose up -d --no-build
+          docker compose up -d --no-build --wait --wait-timeout 90
           bash scripts/smoke-test.sh http://localhost:8098 "$APP_COMMIT_SHA"
 
       - name: Guardar registro del despliegue
@@ -213,7 +270,7 @@ jobs:
   alert:
     name: Alertar fallo del pipeline
     runs-on: ubuntu-latest
-    needs: [test, sonar, build, deploy]
+    needs: [test, sonar, k8s-validate, build, deploy]
     if: failure() && github.event_name == 'push'
     permissions:
       issues: write
@@ -223,10 +280,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const title = `[CI] Falló la ejecución #${context.runId}`;
+            const branch = context.ref.replace('refs/heads/', '');
+            const title = `[CI] Falló el pipeline en ${branch}`;
             const body = [
               `Falló el pipeline en el commit \`${context.sha}\`.`,
-              `Rama: \`${context.ref.replace('refs/heads/', '')}\`.`,
+              `Rama: \`${branch}\`.`,
               `Ejecución: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             ].join('\n\n');
             const { data: issues } = await github.rest.issues.listForRepo({
