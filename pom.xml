@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Política de calidad: cobertura mínima de líneas (la verifica JaCoCo en 'mvn verify') -->
-        <jacoco.line.minimum>0.70</jacoco.line.minimum>
+        <jacoco.line.minimum>0.75</jacoco.line.minimum>
 
         <!-- SonarCloud (projectKey y organization se pasan desde el pipeline como -D) -->
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
