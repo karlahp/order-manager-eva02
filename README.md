@@ -429,11 +429,11 @@ Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor de
 
 ### Reflexión — Sebastián Huaiquimilla
 
-Este trabajo me permitió conectar de forma clara conceptos vistos anteriormente, como las etapas de CI/CD, el uso de Docker y la integración de pruebas automatizadas en un flujo real.
+Este trabajo me permitió conectar de forma clara y práctica conceptos vistos anteriormente en la asignatura, tales como las distintas etapas de un flujo de CI/CD, la contenedorización mediante Docker y la correcta integración de pruebas automatizadas en un entorno real.
 
-La mayor dificultad estuvo en el proceso de depuración, como corregir fallos durante el desarrollo y entender exactamente qué estaba fallando y cómo arreglarlo. Por mi parte, mi aporte principal fue la colaboración constante: participé en la toma de decisiones, revisé código y analicé errores trabajando codo a codo con mi compañera en el mismo entorno (mismo computador).
+La mayor dificultad a la que nos enfrentamos estuvo en el proceso de depuración, en especial al corregir los fallos que surgían durante el desarrollo, entendiendo exactamente qué estaba fallando y cuál era la mejor manera de arreglarlo. Por mi parte, mi aporte principal fue la colaboración constante: participé activamente en la toma de decisiones, revisé el código y analicé cada error trabajando codo a codo con mi compañera desde el mismo computador.
 
-Lo que haría diferente en el futuro es revisar minuciosamente los logs desde el primer fallo que aparezca, en lugar de intentar hacer cambios a lo loco sin identificar primero la causa raíz para no agrandar más los errores.
+De cara a próximos proyectos, lo que haría diferente es revisar minuciosamente los logs desde el primer fallo que aparezca, en lugar de intentar hacer cambios a lo loco sin identificar primero la causa raíz, evitando así agrandar más los errores.
 
 Preguntas guía: ¿Qué concepto de DevOps comprendiste mejor al aplicar el pipeline? ¿Qué fue lo más complejo? ¿Cuál fue tu aporte concreto al equipo?
 
