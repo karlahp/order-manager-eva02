@@ -35,7 +35,7 @@ jobs:
 
       - name: Publicar reportes de pruebas y cobertura
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reportes-calidad
           path: |
@@ -111,7 +111,7 @@ jobs:
           echo "Los manifiestos de k8s/ se renderizaron correctamente."
 
       - name: Guardar manifiestos renderizados
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: manifiestos-kubernetes
           path: /tmp/order-manager-rendered.yaml
@@ -253,7 +253,7 @@ jobs:
 
       - name: Publicar registro del despliegue
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deployment-record
           path: deployment-record.json
