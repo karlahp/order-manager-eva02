@@ -156,7 +156,7 @@ jobs:
         with:
           image-ref: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
           scan-type: image
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
 

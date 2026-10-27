@@ -30,6 +30,10 @@ RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destina
 FROM eclipse-temurin:17-jre-alpine AS runtime
 WORKDIR /app
 
+# Corrige el HIGH CVE-2026-111497 de brotli-libs en Alpine antes de
+# copiar la aplicación. El escaneo Trivy bloquea HIGH/CRITICAL con parche.
+RUN apk upgrade --no-cache brotli-libs
+
 # Usuario NO root con UID numérico fijo (Kubernetes exige UID numérico
 # para verificar runAsNonRoot).
 RUN addgroup -S -g 10001 spring && adduser -S -u 10001 -G spring spring
