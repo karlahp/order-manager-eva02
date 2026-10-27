@@ -421,7 +421,12 @@ Cada integrante debe completar su reflexión personal a partir de su propia expe
 
 ### Reflexión — Karla Hoch
 
-*(Escribir aquí.)*
+Este trabajo fue una excelente oportunidad para reforzar de manera práctica los conceptos de CI/CD, el uso de Docker y la integración de pruebas automatizadas, incorporando además GitHub Desktop para facilitar la gestión de los commits. Mi participación comenzó desde la preparación del espacio de trabajo del equipo, organizando todo desde el inicio para asegurar un desarrollo ordenado y dentro del plazo.
+
+La mayor dificultad a la que nos enfrentamos estuvo en el proceso de depuración: corregir fallos en el código y comprender los mensajes de GitHub Actions, especialmente cuando las soluciones iniciales no daban resultado. Por mi parte, aporté activamente en la toma de decisiones conjuntas, investigando soluciones de forma independiente para luego integrarlas al trabajo en equipo.
+
+De cara a futuros proyectos, lo que haría diferente es repasar bien los contenidos y las herramientas antes de empezar a programar, además de revisar minuciosamente los logs desde el primer error que aparezca. Esto nos habría permitido entender las causas raíz más rápido y evitar probar cambios sin una dirección clara.
+También organizarnos mejor, para evitar tener problema con los códigos a último minuto cuando se acerca la entrega del trabajo.
 
 Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor desafío técnico y cómo lo resolviste? ¿Qué harías distinto? ¿Cómo contribuiste al proyecto?
 
@@ -429,7 +434,11 @@ Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor de
 
 ### Reflexión — Sebastián Huaiquimilla
 
-*(Escribir aquí.)*
+Este trabajo me permitió conectar de forma clara y práctica conceptos vistos anteriormente en la asignatura, tales como las distintas etapas de un flujo de CI/CD, la contenedorización mediante Docker y la correcta integración de pruebas automatizadas en un entorno real.
+
+La mayor dificultad a la que nos enfrentamos estuvo en el proceso de depuración, en especial al corregir los fallos que surgían durante el desarrollo, entendiendo exactamente qué estaba fallando y cuál era la mejor manera de arreglarlo. Por mi parte, mi aporte principal fue la colaboración constante: participé activamente en la toma de decisiones, revisé el código y analicé cada error trabajando codo a codo con mi compañera desde el mismo computador.
+
+De cara a próximos proyectos, lo que haría diferente es revisar minuciosamente los logs desde el primer fallo que aparezca, en lugar de intentar hacer cambios a lo loco sin identificar primero la causa raíz, evitando así agrandar más los errores.
 
 Preguntas guía: ¿Qué concepto de DevOps comprendiste mejor al aplicar el pipeline? ¿Qué fue lo más complejo? ¿Cuál fue tu aporte concreto al equipo?
 
