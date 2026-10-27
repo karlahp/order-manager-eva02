@@ -389,7 +389,7 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 
 ### Reportes disponibles
 - **Surefire + JaCoCo:** artefacto `reportes-calidad` en cada ejecución; ahí se consulta el reporte de cobertura validado por el umbral del 75 %.
-- **Dashboard de SonarCloud:** problemas y Quality Gate. La cobertura no aparece actualmente en el dashboard; el PR #11 muestra 0 % en código nuevo porque solo cambió documentación. Verificar la cobertura global en el artefacto JaCoCo.
+- **Cobertura verificada con JaCoCo:** en la ejecución de `main` [#40425601770](https://github.com/karlahp/order-manager-eva02/actions/runs/40425601770) (commit `7c4a87f`) el reporte global registró **96,72 % de líneas (177/183)**, **98,15 % de ramas (53/54)** y **69 pruebas ejecutadas, 0 fallos y 0 errores**. El `pom.xml` mantiene el umbral bloqueante de 75 % de líneas en `mvn clean verify`; el reporte HTML/XML está disponible en el artefacto `reportes-calidad`. Este registro corresponde al commit indicado, no garantiza por sí solo el resultado de commits posteriores.
 - **Historial de despliegues:** pestaña *Actions* y *Environments* de GitHub.
 
 ---
@@ -401,14 +401,14 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 | Herramienta | Uso | Aplicación |
 |---|---|---|
 | **Claude (Anthropic)** | Apoyo en borradores de configuración DevOps y documentación del proyecto. | El equipo revisó y adaptó los borradores al microservicio Order Manager. |
-| **ChatGPT/Codex (OpenAI)** | Apoyo para completar y depurar el workflow de GitHub Actions, configurar SonarCloud, interpretar resultados de CI y ajustar esta documentación. | El PR #11 pasó pruebas/cobertura al 75 %, SonarCloud y construcción de imagen. La ejecución #16 de `main`, posterior a la integración, también completó el despliegue simulado. |
+| **ChatGPT/Codex (OpenAI)** | Apoyo para depurar el workflow CI/CD, interpretar resultados de pruebas y seguridad, revisar dependencias, mejorar la documentación técnica y contrastar evidencias con la rúbrica. | El equipo debe revisar y comprender los cambios antes de entregar; las reflexiones personales no se redactan con IA. La evidencia de CI se enlaza en la sección de reportes. |
 
 ### Trabajo personal del equipo
 - Las **reflexiones individuales** y las conclusiones personales deben ser redactadas por cada integrante a partir de su propia experiencia, sin asistencia de IA.
 - La declaración identifica las herramientas de IA utilizadas y las tareas en que apoyaron al equipo.
 
 ### Validación
-El PR #11 pasó las pruebas con el umbral JaCoCo de 75 %, el Quality Gate de SonarCloud y la construcción de la imagen. El despliegue se ejecuta solo en `push` a `main`. La ejecución #16 de `main` (commit `9a71246`) completó pruebas, SonarCloud, construcción de imagen y despliegue simulado; GitHub Actions publicó `deployment-record` y `reportes-calidad`.
+La ejecución [#40425601770 de `main`](https://github.com/karlahp/order-manager-eva02/actions/runs/40425601770), del 27/10/2026 y commit `7c4a87f`, terminó con resultado `success`: pasaron pruebas/cobertura, SonarCloud, renderizado de manifiestos Kubernetes, construcción Docker, escaneo Trivy, smoke test con Docker Compose y despliegue simulado. Se publicaron los artefactos `reportes-calidad`, `manifiestos-kubernetes` y `deployment-record`. En esa ejecución JaCoCo registró 96,72 % de líneas (177/183), por encima del mínimo bloqueante de 75 %. Los commits posteriores se deben revisar en su propia ejecución de Actions.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
