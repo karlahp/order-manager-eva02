@@ -389,7 +389,7 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 
 ### Reportes disponibles
 - **Surefire + JaCoCo:** artefacto `reportes-calidad` en cada ejecución; ahí se consulta el reporte de cobertura validado por el umbral del 75 %.
-- **Cobertura verificada con JaCoCo:** en la ejecución de `main` [#40424423946](https://github.com/karlahp/order-manager-eva02/actions/runs/40424423946) (commit `b229f3f`) el reporte global registró **96,72 % de líneas (177/183)**, **98,15 % de ramas (53/54)** y **69 pruebas ejecutadas, 0 fallos y 0 errores**. El `pom.xml` mantiene el umbral bloqueante de 75 % de líneas en `mvn clean verify`; el reporte HTML/XML está disponible en el artefacto `reportes-calidad`. Este registro corresponde al commit indicado, no garantiza por sí solo el resultado de commits posteriores.
+- **Cobertura verificada con JaCoCo:** en la ejecución de `main` [#40425601770](https://github.com/karlahp/order-manager-eva02/actions/runs/40425601770) (commit `7c4a87f`) el reporte global registró **96,72 % de líneas (177/183)**, **98,15 % de ramas (53/54)** y **69 pruebas ejecutadas, 0 fallos y 0 errores**. El `pom.xml` mantiene el umbral bloqueante de 75 % de líneas en `mvn clean verify`; el reporte HTML/XML está disponible en el artefacto `reportes-calidad`. Este registro corresponde al commit indicado, no garantiza por sí solo el resultado de commits posteriores.
 - **Historial de despliegues:** pestaña *Actions* y *Environments* de GitHub.
 
 ---
@@ -408,7 +408,7 @@ curl -s localhost:8098/actuator/info | jq .app.commit
 - La declaración identifica las herramientas de IA utilizadas y las tareas en que apoyaron al equipo.
 
 ### Validación
-La ejecución [#40424423946 de `main`](https://github.com/karlahp/order-manager-eva02/actions/runs/40424423946), del 27/10/2026 y commit `b229f3f`, terminó con resultado `success`: pasaron pruebas/cobertura, SonarCloud, renderizado de manifiestos Kubernetes, construcción Docker, escaneo Trivy, smoke test con Docker Compose y despliegue simulado. Se publicaron los artefactos `reportes-calidad`, `manifiestos-kubernetes` y `deployment-record`. En esa ejecución JaCoCo registró 96,72 % de líneas (177/183), por encima del mínimo bloqueante de 75 %. Los commits posteriores se deben revisar en su propia ejecución de Actions.
+La ejecución [#40425601770 de `main`](https://github.com/karlahp/order-manager-eva02/actions/runs/40425601770), del 27/10/2026 y commit `7c4a87f`, terminó con resultado `success`: pasaron pruebas/cobertura, SonarCloud, renderizado de manifiestos Kubernetes, construcción Docker, escaneo Trivy, smoke test con Docker Compose y despliegue simulado. Se publicaron los artefactos `reportes-calidad`, `manifiestos-kubernetes` y `deployment-record`. En esa ejecución JaCoCo registró 96,72 % de líneas (177/183), por encima del mínimo bloqueante de 75 %. Los commits posteriores se deben revisar en su propia ejecución de Actions.
 
 ### Referencias
 - Política institucional de uso de IA: <https://bibliotecas.duoc.cl/ia>
