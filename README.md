@@ -421,13 +421,12 @@ Cada integrante debe completar su reflexión personal a partir de su propia expe
 
 ### Reflexión — Karla Hoch
 
-Este trabajo fue una excelente oportunidad para reforzar de manera práctica los conceptos de CI/CD, el uso de Docker y la integración de pruebas automatizadas, incorporando además GitHub Desktop para facilitar la gestión de los commits. Mi participación comenzó desde la preparación del espacio de trabajo del equipo, organizando todo desde el inicio para asegurar un desarrollo ordenado y dentro del plazo.
+En este proyecto pude consolidar mejor cómo se relacionan la integración continua, los contenedores Docker y los test automáticos, apoyándome además en GitHub Desktop para gestionar los commits de forma más fluida. Desde el comienzo me involucré preparando el entorno de trabajo del grupo, lo que nos permitió organizarnos bien y cumplir con los tiempos de entrega.
 
-La mayor dificultad a la que nos enfrentamos estuvo en el proceso de depuración: corregir fallos en el código y comprender los mensajes de GitHub Actions, especialmente cuando las soluciones iniciales no daban resultado. Por mi parte, aporté activamente en la toma de decisiones conjuntas, investigando soluciones de forma independiente para luego integrarlas al trabajo en equipo.
+Lo más complejo fue descifrar las fallas del código y entender los mensajes que arrojaba GitHub Actions, sobre todo cuando los intentos de solución no funcionaban al primer intento. Mi rol principal consistió en aportar a la toma de decisiones, investigar alternativas por mi cuenta y colaborar de cerca para resolver los problemas en conjunto.
 
-De cara a futuros proyectos, lo que haría diferente es repasar bien los contenidos y las herramientas antes de empezar a programar, además de revisar minuciosamente los logs desde el primer error que aparezca. Esto nos habría permitido entender las causas raíz más rápido y evitar probar cambios sin una dirección clara.
-También organizarnos mejor, para evitar tener problema con los códigos a último minuto cuando se acerca la entrega del trabajo.
-
+Si tuviera que volver a empezar, me aseguraría de repasar la materia y las herramientas antes de escribir código. También analizaría los registros de fallas apenas aparezca el primer aviso, evitando perder tiempo adivinando soluciones y enfocándome de inmediato en el problema real.
+También el hecho de organizarnos mejor, para evitar tener problema con los códigos a último minuto cuando se acerca la entrega del trabajo.
 Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor desafío técnico y cómo lo resolviste? ¿Qué harías distinto? ¿Cómo contribuiste al proyecto?
 
 ---
