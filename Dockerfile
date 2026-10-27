@@ -6,7 +6,7 @@
 # ------------------------------------------------------------
 # ETAPA 1: BUILD  (no forma parte de la imagen final)
 # ------------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /app
 
 # 1) Solo el pom.xml: si el código cambia pero las dependencias no,
