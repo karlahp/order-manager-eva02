@@ -429,7 +429,11 @@ Preguntas guía: ¿Qué aprendiste que no sabías antes? ¿Cuál fue el mayor de
 
 ### Reflexión — Sebastián Huaiquimilla
 
-*(Escribir aquí.)*
+Este trabajo me permitió conectar de forma clara conceptos vistos anteriormente, como las etapas de CI/CD, el uso de Docker y la integración de pruebas automatizadas en un flujo real.
+
+La mayor dificultad estuvo en el proceso de depuración, como corregir fallos durante el desarrollo y entender exactamente qué estaba fallando y cómo arreglarlo. Por mi parte, mi aporte principal fue la colaboración constante: participé en la toma de decisiones, revisé código y analicé errores trabajando codo a codo con mi compañera en el mismo entorno (mismo computador).
+
+Lo que haría diferente en el futuro es revisar minuciosamente los logs desde el primer fallo que aparezca, en lugar de intentar hacer cambios a lo loco sin identificar primero la causa raíz para no agrandar más los errores.
 
 Preguntas guía: ¿Qué concepto de DevOps comprendiste mejor al aplicar el pipeline? ¿Qué fue lo más complejo? ¿Cuál fue tu aporte concreto al equipo?
 
